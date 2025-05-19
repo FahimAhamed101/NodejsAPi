@@ -27,9 +27,9 @@ exports.createProduct = async (req, res) => {
   try {
     const { name, description, price, category } = req.body;
     
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ 
-        errors: { image: 'Product image is required' } 
+        errors: { images: 'At least one product image is required' } 
       });
     }
 
@@ -38,7 +38,7 @@ exports.createProduct = async (req, res) => {
       description,
       price,
       category,
-      image: req.file.path,
+      images: req.files.map(file => file.path),
     });
 
     await product.save();
@@ -58,7 +58,6 @@ exports.createProduct = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 // Update product
 exports.updateProduct = async (req, res) => {

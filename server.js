@@ -1,26 +1,36 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
+const multer = require('multer'); // Added multer import
 const productRoutes = require('./routes/products');
 const app = express();
 const path = require('path');
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Routes
-// Add these require statements at the top
-
 
 // Load env vars
 dotenv.config();
 
-// Add cookie parser middleware (before routes)
+// Middleware
+app.use(cors());
+app.use(express.json());
 app.use(cookieParser());
 
+// Multer configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // Make uploads folder static
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -44,7 +54,7 @@ app.use((err, req, res, next) => {
 });
 
 // MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/productDB', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/productDB', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

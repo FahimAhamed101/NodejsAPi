@@ -23,10 +23,10 @@ const productSchema = new mongoose.Schema({
       message: 'Invalid category',
     },
   },
-  image: {
+  images: [{
     type: String,
-    required: [true, 'Product image is required'],
-  },
+    required: [true, 'Product images are required'],
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
@@ -35,36 +35,35 @@ const productSchema = new mongoose.Schema({
   toJSON: { 
     virtuals: true,
     transform: function(doc, ret) {
-      // Remove the original image path when virtual is present
-      delete ret.image;
+      delete ret.images;
       return ret;
     }
   },
   toObject: { 
     virtuals: true,
     transform: function(doc, ret) {
-      delete ret.image;
+      delete ret.images;
       return ret;
     }
   }
 });
 
-// Virtual for image URL - using different name to avoid conflict
-productSchema.virtual('imageUrl').get(function() {
-  if (this.image) {
-    // Normalize the URL construction
+// Virtual for image URLs
+productSchema.virtual('imageUrls').get(function() {
+  if (this.images && this.images.length) {
     const baseUrl = (process.env.BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
-    const imagePath = this.image.replace(/^[\\/]/, '').replace(/\\/g, '/');
-    
-    return `${baseUrl}/${imagePath}`;
+    return this.images.map(image => {
+      const imagePath = image.replace(/^[\\/]/, '').replace(/\\/g, '/');
+      return `${baseUrl}/${imagePath}`;
+    });
   }
-  return null;
+  return [];
 });
 
 // Middleware to ensure consistency
 productSchema.pre('save', function(next) {
-  if (this.isModified('image')) {
-    this.image = this.image.replace(/\\/g, '/');
+  if (this.isModified('images')) {
+    this.images = this.images.map(image => image.replace(/\\/g, '/'));
   }
   next();
 });
