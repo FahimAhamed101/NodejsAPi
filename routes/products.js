@@ -14,7 +14,11 @@ router.get('/:id', getProductById);
 
 // Create a product - now handles multiple images
 router.post('/', upload.array('images', 5), productController.createProduct);
-router.put('/:id', updateProduct);
+router.put(
+  '/:id',
+  upload.array('images', 5), // Same config as create
+  productController.updateProduct
+);
 router.delete('/:id', deleteProduct);
 
 module.exports = router;

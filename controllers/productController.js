@@ -62,14 +62,63 @@ exports.createProduct = async (req, res) => {
 // Update product
 exports.updateProduct = async (req, res) => {
   try {
+    const { id } = req.params;
+    const { name, description, price, category } = req.body;
+    
+    // Find the existing product
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Prepare update data
+    const updateData = {
+      name: name || product.name,
+      description: description || product.description,
+      price: price || product.price,
+      category: category || product.category,
+    };
+
+    // Handle image updates if new files are uploaded
+    if (req.files && req.files.length > 0) {
+      // Delete old images from filesystem
+      product.images.forEach(imagePath => {
+        const fullPath = path.join(__dirname, '..', imagePath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      });
+      
+      // Add new images
+      updateData.images = req.files.map(file => file.path);
+    }
+
+    // Update the product
     const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
+      id,
+      updateData,
+      { new: true, runValidators: true }
     );
-    res.json(updatedProduct);
+
+    res.status(200).json(updatedProduct);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+      const errors = {};
+      Object.keys(err.errors).forEach((key) => {
+        errors[key] = err.errors[key].message;
+      });
+      return res.status(400).json({ errors });
+    }
+    
+    // Handle cast errors (invalid ID format)
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+    
+    // Handle other errors
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
